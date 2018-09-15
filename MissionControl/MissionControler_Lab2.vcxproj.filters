@@ -21,5 +21,8 @@
     <ClInclude Include="__vm\.MissionControler_Lab2.vsarduino.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="__vm\.MissionControl.vsarduino.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>
