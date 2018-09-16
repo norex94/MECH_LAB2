@@ -211,13 +211,13 @@ void recieveDATA()
 					{
 					case 0x01:
 						Serial.print("Stage recived: ");
-						Serial.println(buf[1], HEX);
+						Serial.print(buf[1], HEX);
 						setState(DATA_TYPE);
 						//sendBack();
 						break;
 					case 0x02:
 						Serial.println("Throttle recived: ");
-						Serial.println(buf[1], HEX);
+						Serial.print(buf[1], HEX);
 						setState(DATA_TYPE);
 						//sendBack();
 						break;
@@ -239,8 +239,8 @@ void recieveDATA()
 				}
 			}
 			else { 
-				//Serial.println("Not my message, ID:"); 
-				//Serial.println(rf95.headerId());
+				Serial.println("Not my message, ID:"); 
+				Serial.println(rf95.headerId());
 			}
 			//Serial.println((char*)buf);
 			//Serial.print("RSSI: ");
@@ -254,7 +254,7 @@ void recieveDATA()
 	}
 	else
 	{
-		Serial.println("ACK not received");
+		Serial.println("MC not sending..");
 		digitalWrite(ERRORLED, HIGH);
 	}
 
@@ -267,7 +267,7 @@ void loop()
 
 
 	recieveDATA();
-	delay(500);
+	delay(800);
 	Serial.println("____________________");
 
 

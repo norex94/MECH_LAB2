@@ -1,7 +1,9 @@
 ﻿//Mission Controller
 
+
 #include <SPI.h>
 #include <RH_RF95.h>
+
 
 
 // Change to 434.0 or other frequency, must match RX's freq!
@@ -153,26 +155,7 @@ void setState(uint8_t state)
 	}
 }
 
-/*
-void setCommandType(uint8_t temp, uint8_t data)
-{
-	switch (temp)
-	{
-	case 1:
-		CMD_TYPE = CMD_SET_STATE;
-		CMD_VALUE = 
-		break;
-	case 2:
-		CMD_TYPE = CMD_SET_THROTTLE;
-		break;
-	default:
-		break;
-	}
 
-	Serial.print("Command type set: ");
-	Serial.println(CMD_TYPE, HEX);
-}
-*/
 void sendCOMMAND(uint8_t CMD_TYPE, uint8_t CMD_VALUE)
 {
 	//check is the XOR of TYPE and VALUE
@@ -188,8 +171,11 @@ void sendCOMMAND(uint8_t CMD_TYPE, uint8_t CMD_VALUE)
 	rf95.send((uint8_t *)COMMAND, COMMAND_size);
 	delay(10);
 	rf95.waitPacketSent();
-	//Serial.println("Command Sent: ");
-	//Serial.println(COMMAND[0], HEX);
+	Serial.print("Command Sent: ");
+	Serial.print(CMD_TYPE, HEX);
+	Serial.print(" Data: ");
+	Serial.println(CMD_VALUE, HEX);
+
 	
 }
 
@@ -301,12 +287,12 @@ void loop()
 
 	//setCommandType(1);
 	readThrottle();
-	sendCOMMAND(0x01,1);
-	delay(500);
+	sendCOMMAND(CMD_SET_STATE,1);
+	delay(1000);
 
-	sendCOMMAND(0x02,144);
+	sendCOMMAND(CMD_SET_THROTTLE,144);
 
-	delay(500);
+	delay(1000);
 
 
 	Serial.println("____________________");
