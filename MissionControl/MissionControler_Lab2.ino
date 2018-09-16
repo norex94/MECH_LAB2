@@ -4,8 +4,6 @@
 #include <SPI.h>
 #include <RH_RF95.h>
 
-
-
 // Change to 434.0 or other frequency, must match RX's freq!
 #define RF95_FREQ 430.0
 
@@ -41,6 +39,10 @@ uint8_t DATA_VALUE;
 uint8_t DATA_ERROR;
 
 
+//Values
+uint8_t BATTERY;
+
+
 bool KILL_SWITCH = false;
 bool FAIL_SAFE = false;
 
@@ -54,6 +56,8 @@ RH_RF95 rf95(RFM95_CS, RFM95_INT);
 
 // packet counter, we increment per transmission
 int16_t packetnum = 0;
+
+
 
 void setup()
 {
@@ -100,14 +104,20 @@ void setup()
 	// If you are using RFM95/96/97/98 modules which uses the PA_BOOST transmitter pin, then 
 	// you can set transmitter powers from 5 to 23 dBm:
 	rf95.setTxPower(23, false);
+
+
+
+
+
 }
 
-void readThrottle()
+uint32_t readThrottle()
 {
 	//The entire voltage range is read with 32 bits and converted to 8 bits (1 byte) for transmission..
 	float SCALE = 0.25;
 	uint32_t temp_VALUE = analogRead(THROTTLE);
-	CMD_VALUE = SCALE * temp_VALUE;
+	return SCALE * temp_VALUE;
+	
 }
 
 void setState(uint8_t state)
@@ -163,20 +173,19 @@ void sendCOMMAND(uint8_t CMD_TYPE, uint8_t CMD_VALUE)
 	COMMAND[0] = CMD_TYPE;
 	COMMAND[1] = CMD_VALUE;
 	COMMAND[2] = CMD_CHECK;
-	digitalWrite(ERRORLED, LOW);
 	checkButtons();
 	rf95.setHeaderId(MC_ID);
-	Serial.print("Transmitting on: ");
-	Serial.println(MC_ID);
+	//Serial.print("Transmitting on: ");
+	//Serial.println(MC_ID);
 	rf95.send((uint8_t *)COMMAND, COMMAND_size);
 	delay(10);
 	rf95.waitPacketSent();
 	Serial.print("Command Sent: ");
 	Serial.print(CMD_TYPE, HEX);
 	Serial.print(" Data: ");
-	Serial.println(CMD_VALUE, HEX);
+	Serial.println(CMD_VALUE, DEC);
 
-	
+	recieveDATA();
 }
 
 void recieveDATA()
@@ -200,25 +209,30 @@ void recieveDATA()
 					switch (DATA_TYPE)
 					{
 					case 0x01:
-						Serial.print("BATT_VOLTAGE: ");
+						Serial.print("#ACK COMMAND: ");
 						Serial.println(buf[1]);
-						//Serial.println(DATA_VALUE);
+						digitalWrite(ERRORLED, LOW);
 						break;
+						
 					case 0x02:
-						Serial.println("ACK COMMAND");
+						Serial.print("#BATT VOLTAGE: ");
+						BATTERY = buf[1];
+						Serial.println(buf[1]);
+						digitalWrite(ERRORLED, LOW);
 						break;
 					case 0x03:
-						Serial.println("Command FAIL");
+						Serial.println("#Command FAIL");
 						digitalWrite(ERRORLED, HIGH);
 						break;
 					default:
-						Serial.println("FAILED");
+						Serial.println("#FAILED");
+						digitalWrite(ERRORLED, HIGH);
 						break;
 					}
 				}
 				else
 				{
-					Serial.println("Recieve FAIL");
+					Serial.println("CheackSum ERROR");
 					digitalWrite(ERRORLED, HIGH);
 
 				}
@@ -288,11 +302,11 @@ void loop()
 	//setCommandType(1);
 	readThrottle();
 	sendCOMMAND(CMD_SET_STATE,1);
-	delay(1000);
+	delay(100);
 
-	sendCOMMAND(CMD_SET_THROTTLE,144);
-
-	delay(1000);
+	sendCOMMAND(CMD_SET_THROTTLE,readThrottle());
+	readThrottle();
+	delay(100);
 
 
 	Serial.println("____________________");

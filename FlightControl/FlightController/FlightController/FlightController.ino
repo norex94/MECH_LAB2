@@ -18,9 +18,13 @@
 #define ERRORLED		9
 #define RFM95_INT		10
 
-#define THROTTLE		14
-#define KILL_ENGINE		15
-#define SELF_DESTRUCT	16
+#define ENGINE			18
+#define PARACHUTE		19
+#define BATTERY			14
+
+#define REPLY_ACK 0x01
+#define REPLY_BATT 0x02
+#define REPLY_ERROR 0x03
 
 //Mission Control caller ID
 const uint8_t MC_ID = 9;
@@ -47,7 +51,7 @@ uint8_t DATA_ERROR;
 
 
 //Data
-uint8_t DATA_BATTERY = 0x05;
+uint8_t DATA_BATTERY;
 
 bool KILL_SWITCH = false;
 bool FAIL_SAFE = false;
@@ -69,9 +73,11 @@ void setup()
 	digitalWrite(RFM95_RST, HIGH);
 	pinMode(ERRORLED, OUTPUT);
 	digitalWrite(ERRORLED, LOW);
-	pinMode(THROTTLE, INPUT);
-	pinMode(KILL_ENGINE, INPUT_PULLUP);
-	pinMode(SELF_DESTRUCT, INPUT_PULLUP);
+	
+	pinMode(ENGINE, OUTPUT);
+	pinMode(PARACHUTE, OUTPUT);
+	
+	pinMode(BATTERY, INPUT);
 
 
 	//Serial.begin(115200);
@@ -81,7 +87,7 @@ void setup()
 
 	delay(100);
 
-	Serial.println("Initializing");
+	Serial.println("Initializing Flight Controller");
 
 	// manual reset
 	digitalWrite(RFM95_RST, LOW);
@@ -110,71 +116,67 @@ void setup()
 	rf95.setTxPower(23, false);
 }
 
+uint32_t readBattery()
+{
+	//The entire voltage range is read with 32 bits and converted to 8 bits (1 byte) for transmission..
+	float SCALE = 0.25;
+	uint32_t temp_VALUE = analogRead(BATTERY);
+	return SCALE * temp_VALUE;
+
+}
+
 
 void setState(uint8_t state)
 {
 	switch (state)
 	{
 	case 0:
-		CMD_VALUE = START;
+		//CMD_VALUE = START;
 		break;
 	case 1:
-		CMD_VALUE = TEST;
+		//CMD_VALUE = TEST;
 		break;
 	case 2:
-		CMD_VALUE = READY;
+		//CMD_VALUE = READY;
 		break;
 	case 3:
-		CMD_VALUE = IGNITION;
+		//CMD_VALUE = IGNITION;
 		break;
 	case 4:
-		CMD_VALUE = ASCENT;
+		//CMD_VALUE = ASCENT;
 		break;
 	case 5:
-		CMD_VALUE = COASTING;
+		//CMD_VALUE = COASTING;
 		break;
 	case 6:
-		CMD_VALUE = APOGEE;
+		//CMD_VALUE = APOGEE;
 		break;
 	case 7:
-		CMD_VALUE = DESCENT;
+		//CMD_VALUE = DESCENT;
 		break;
 	case 8:
-		CMD_VALUE = LAND;
+		//CMD_VALUE = LAND;
 		break;
 	case 9:
-		CMD_VALUE = DISABLE;
+		//CMD_VALUE = DISABLE;
 		break;
 	case 10:
-		CMD_VALUE = RESET;
+		//CMD_VALUE = RESET;
 		break;
 	case 11:
-		CMD_VALUE = SELFDESTRUCT;
+		//CMD_VALUE = SELFDESTRUCT;
 		break;
 	default:
 		break;
 	}
 }
 
-void setMessageType(uint8_t temp)
-{
-	switch (temp)
-	{
-	case 0x01:
-		CMD_TYPE = CMD_SET_STATE;
-	case 0x02:
-		CMD_TYPE = CMD_SET_THROTTLE;
-	default:
-		break;
-	}
-}
-
-void sendBack()
+void sendBack(uint8_t CMD_TYPE, uint8_t CMD_VALUE)
 {
 	//check is the XOR of TYPE and VALUE
-	CMD_CHECK = DATA_BATTERY ^ CMD_VALUE;
+	CMD_CHECK = CMD_VALUE ^ CMD_TYPE;
 	COMMAND[0] = CMD_TYPE;
-	COMMAND[1] = DATA_BATTERY;
+	COMMAND[1] = CMD_VALUE;
 	COMMAND[2] = CMD_CHECK;
 	digitalWrite(ERRORLED, LOW);
 	rf95.setHeaderId(FC_ID);
@@ -183,8 +185,10 @@ void sendBack()
 	rf95.send((uint8_t *)COMMAND, COMMAND_size);
 	delay(10);
 	rf95.waitPacketSent();
-	Serial.println("Reply Sent");
-	//recieveDATA();
+	Serial.print("Reply Sent: ");
+	Serial.print(CMD_TYPE, HEX);
+	Serial.print(" Data: ");
+	Serial.println(CMD_VALUE, DEC);
 }
 
 void recieveDATA()
@@ -210,21 +214,22 @@ void recieveDATA()
 					switch (DATA_TYPE)
 					{
 					case 0x01:
-						Serial.print("Stage recived: ");
-						Serial.print(buf[1], HEX);
+						Serial.print("#Stage recived: ");
+						Serial.println(buf[1], HEX);
 						setState(DATA_TYPE);
-						//sendBack();
+						sendBack(REPLY_ACK, DATA_VALUE);
 						break;
 					case 0x02:
-						Serial.println("Throttle recived: ");
-						Serial.print(buf[1], HEX);
+						Serial.print("#Throttle recived: ");
+						Serial.println(buf[1], DEC);
 						setState(DATA_TYPE);
-						//sendBack();
+						sendBack(REPLY_BATT, DATA_BATTERY);
 						break;
 
 					default:
-						Serial.println("Error on Stage: ");
-						Serial.print(DATA_TYPE, HEX);
+						Serial.print("#Error on Stage: ");
+						Serial.println(DATA_TYPE, HEX);
+						sendBack(REPLY_ERROR, DATA_VALUE);
 						break;
 					}
 
@@ -233,7 +238,7 @@ void recieveDATA()
 				}
 				else
 				{
-					Serial.println("Recieve FAIL");
+					Serial.println("CheackSum ERROR");
 					digitalWrite(ERRORLED, HIGH);
 
 				}
@@ -261,17 +266,19 @@ void recieveDATA()
 }
 
 
+
+
+
+
 void loop()
 {
-
-
-
-	recieveDATA();
-	delay(800);
+	
+	
 	Serial.println("____________________");
-
-
-
+	DATA_BATTERY = readBattery();
+	recieveDATA();
+	delay(100);
+	
 
 
 }
