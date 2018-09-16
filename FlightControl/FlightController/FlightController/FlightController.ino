@@ -11,7 +11,7 @@
 
 
 // Change to 434.0 or other frequency, must match RX's freq!
-#define RF95_FREQ 434.0
+#define RF95_FREQ 430.0
 
 #define RFM95_CS		5
 #define RFM95_RST		6
@@ -184,7 +184,7 @@ void sendBack()
 	delay(10);
 	rf95.waitPacketSent();
 	Serial.println("Reply Sent");
-	recieveDATA();
+	//recieveDATA();
 }
 
 void recieveDATA()
@@ -205,22 +205,31 @@ void recieveDATA()
 					DATA_TYPE = buf[0];
 					DATA_VALUE = buf[1];
 					DATA_ERROR = buf[2];
-
+					
+					
 					switch (DATA_TYPE)
 					{
 					case 0x01:
 						Serial.print("Stage recived: ");
-						Serial.println(buf[1]);
+						Serial.println(buf[1], HEX);
 						setState(DATA_TYPE);
-						sendBack();
+						//sendBack();
 						break;
 					case 0x02:
 						Serial.println("Throttle recived: ");
-						Serial.println(buf[1]);
+						Serial.println(buf[1], HEX);
 						setState(DATA_TYPE);
-						sendBack();
+						//sendBack();
+						break;
+
+					default:
+						Serial.println("Error on Stage: ");
+						Serial.print(DATA_TYPE, HEX);
 						break;
 					}
+
+
+
 				}
 				else
 				{
@@ -259,7 +268,7 @@ void loop()
 
 	recieveDATA();
 	delay(500);
-
+	Serial.println("____________________");
 
 
 

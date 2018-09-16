@@ -5,7 +5,7 @@
 
 
 // Change to 434.0 or other frequency, must match RX's freq!
-#define RF95_FREQ 434.0
+#define RF95_FREQ 430.0
 
 #define RFM95_CS		5
 #define RFM95_RST		6
@@ -153,20 +153,27 @@ void setState(uint8_t state)
 	}
 }
 
-void setCommandType(uint8_t temp)
+/*
+void setCommandType(uint8_t temp, uint8_t data)
 {
 	switch (temp)
 	{
-	case 0x01:
+	case 1:
 		CMD_TYPE = CMD_SET_STATE;
-	case 0x02:
+		CMD_VALUE = 
+		break;
+	case 2:
 		CMD_TYPE = CMD_SET_THROTTLE;
+		break;
 	default:
 		break;
 	}
-}
 
-void sendCOMMAND()
+	Serial.print("Command type set: ");
+	Serial.println(CMD_TYPE, HEX);
+}
+*/
+void sendCOMMAND(uint8_t CMD_TYPE, uint8_t CMD_VALUE)
 {
 	//check is the XOR of TYPE and VALUE
 	CMD_CHECK = CMD_TYPE ^ CMD_VALUE;
@@ -181,8 +188,9 @@ void sendCOMMAND()
 	rf95.send((uint8_t *)COMMAND, COMMAND_size);
 	delay(10);
 	rf95.waitPacketSent();
-	Serial.println("Command Sent");
-	recieveDATA();
+	//Serial.println("Command Sent: ");
+	//Serial.println(COMMAND[0], HEX);
+	
 }
 
 void recieveDATA()
@@ -267,7 +275,7 @@ void checkButtons()
 
 void loop()
 {
-
+/*
 	checkButtons();
 	if (KILL_SWITCH)
 	{
@@ -287,17 +295,21 @@ void loop()
 		delay(1500);
 		FAIL_SAFE = false;
 	}
+	*/
 	//if time passed (skoða excel check listann fyrir states) skipta um state og eitthvað svoleiðis...
 	//annars alltaf senda throttle stillingar.
 
-	setCommandType(1);
+	//setCommandType(1);
 	readThrottle();
-	sendCOMMAND();
+	sendCOMMAND(0x01,1);
+	delay(500);
 
-	delay(1000);
+	sendCOMMAND(0x02,144);
+
+	delay(500);
 
 
-
+	Serial.println("____________________");
 
 	//ég sendi stærð sem er *strengur 
 	//og byrjar á radiopacket í minninu, og ég ætla að senda 20 sæti.
