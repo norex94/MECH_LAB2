@@ -1,4 +1,9 @@
-﻿//Mission Controller
+﻿/*
+ Name:		FlightController.ino
+ Created:	09/16/2018 11:24:47
+ Author:	Arnór
+*/
+
 
 
 #include <SPI.h>
@@ -18,14 +23,15 @@
 #define SELF_DESTRUCT	16
 
 //Mission Control caller ID
-const uint8_t MC_ID = 0x77;
+const uint8_t MC_ID = 0x80;
 
 //Flight Computer caller ID
-const uint8_t FC_ID = 0x64;
+const uint8_t FC_ID = 0x81;
 
 //two types of commands: set state & set throttle
 uint8_t CMD_SET_STATE = 0x01; // B 0000 0001;
 uint8_t CMD_SET_THROTTLE = 0x02; // B 0000 0010;
+
 
 //the command I will be sending: nr.1-command type, nr.2-value and nr.3-error check.
 const int COMMAND_size = 3;
@@ -39,6 +45,9 @@ uint8_t DATA_TYPE;
 uint8_t DATA_VALUE;
 uint8_t DATA_ERROR;
 
+
+//Data
+uint8_t DATA_BATTERY = 0x05;
 
 bool KILL_SWITCH = false;
 bool FAIL_SAFE = false;
@@ -101,13 +110,6 @@ void setup()
 	rf95.setTxPower(23, false);
 }
 
-void readThrottle()
-{
-	//The entire voltage range is read with 32 bits and converted to 8 bits (1 byte) for transmission..
-	float SCALE = 0.25;
-	uint32_t temp_VALUE = analogRead(THROTTLE);
-	CMD_VALUE = SCALE * temp_VALUE;
-}
 
 void setState(uint8_t state)
 {
@@ -154,7 +156,7 @@ void setState(uint8_t state)
 	}
 }
 
-void setCommandType(uint8_t temp)
+void setMessageType(uint8_t temp)
 {
 	switch (temp)
 	{
@@ -167,16 +169,15 @@ void setCommandType(uint8_t temp)
 	}
 }
 
-void sendCOMMAND()
+void sendBack()
 {
 	//check is the XOR of TYPE and VALUE
-	CMD_CHECK = CMD_TYPE ^ CMD_VALUE;
+	CMD_CHECK = DATA_BATTERY ^ CMD_VALUE;
 	COMMAND[0] = CMD_TYPE;
-	COMMAND[1] = CMD_VALUE;
+	COMMAND[1] = DATA_BATTERY;
 	COMMAND[2] = CMD_CHECK;
 	digitalWrite(ERRORLED, LOW);
-	checkButtons();
-	rf95.setHeaderId(MC_ID);
+	rf95.setHeaderId(FC_ID);
 	Serial.println("Transmitting...");
 	rf95.send((uint8_t *)COMMAND, COMMAND_size);
 	delay(10);
@@ -189,44 +190,45 @@ void recieveDATA()
 {
 	uint8_t buf[COMMAND_size];
 	uint8_t len = sizeof(buf);
-	checkButtons();
+	
 	Serial.println("Waiting for reply...");
 	//MAX wait for DATA is set 1 sec.
 	if (rf95.waitAvailableTimeout(1000))
 	{
 		if (rf95.recv(buf, &len))
 		{
-			if (buf[2] == (buf[0] ^ buf[1]))
+			if (rf95.headerId() == MC_ID) 
 			{
-				DATA_TYPE = buf[0];
-				DATA_VALUE = buf[1];
-				DATA_ERROR = buf[2];
-
-				switch (DATA_TYPE)
+				if (buf[2] == (buf[0] ^ buf[1]))
 				{
-				case 0x01:
-					Serial.print("BATT_VOLTAGE: ");
-					Serial.println(buf[1]);
-					//Serial.println(DATA_VALUE);
-					break;
-				case 0x02:
-					Serial.println("ACK COMMAND");
-					break;
-				case 0x03:
-					Serial.println("Command FAIL");
+					DATA_TYPE = buf[0];
+					DATA_VALUE = buf[1];
+					DATA_ERROR = buf[2];
+
+					switch (DATA_TYPE)
+					{
+					case 0x01:
+						Serial.print("Set Stage: ");
+						Serial.println(buf[1]);
+						setMessageType(DATA_TYPE);
+						sendBack();
+						break;
+					case 0x02:
+						Serial.println("Set Throttle");
+						Serial.println(buf[1]);
+						setMessageType(DATA_TYPE);
+						sendBack();
+						break;
+					}
+				}
+				else
+				{
+					Serial.println("Recieve FAIL");
 					digitalWrite(ERRORLED, HIGH);
-					break;
-				default:
-					Serial.println("FAILED");
-					break;
+
 				}
 			}
-			else
-			{
-				Serial.println("Recieve FAIL");
-				digitalWrite(ERRORLED, HIGH);
-
-			}
+			else { Serial.println("Not my message."); }
 			//Serial.println((char*)buf);
 			//Serial.print("RSSI: ");
 			//Serial.println(rf95.lastRssi(), DEC);
@@ -245,48 +247,14 @@ void recieveDATA()
 
 }
 
-void checkButtons()
-{
-	if (!digitalRead(KILL_ENGINE))
-	{
-		KILL_SWITCH = true;
-	}
-	if (!digitalRead(SELF_DESTRUCT))
-	{
-		FAIL_SAFE = true;
-	}
-}
 
 void loop()
 {
 
-	checkButtons();
-	if (KILL_SWITCH)
-	{
-
-		setCommandType(2);
-		setState(9);
-		sendCOMMAND();
-		delay(1500);
-		KILL_SWITCH = false;
-	}
-	if (FAIL_SAFE)
-	{
-
-		setCommandType(1);
-		setState(11);
-		sendCOMMAND();
-		delay(1500);
-		FAIL_SAFE = false;
-	}
-	//if time passed (skoða excel check listann fyrir states) skipta um state og eitthvað svoleiðis...
-	//annars alltaf senda throttle stillingar.
-	setCommandType(2);
-	readThrottle();
-	sendCOMMAND();
 
 
-
+	recieveDATA();
+	delay(900);
 
 
 

@@ -1,6 +1,5 @@
 ﻿//Mission Controller
 
-
 #include <SPI.h>
 #include <RH_RF95.h>
 
@@ -18,10 +17,10 @@
 #define SELF_DESTRUCT	16
 
 //Mission Control caller ID
-const uint8_t MC_ID = 0x77;
+const uint8_t MC_ID = 0x80;
 
 //Flight Computer caller ID
-const uint8_t FC_ID = 0x64;
+const uint8_t FC_ID = 0x81;
 
 //two types of commands: set state & set throttle
 uint8_t CMD_SET_STATE = 0x01; // B 0000 0001;
@@ -196,45 +195,50 @@ void recieveDATA()
 	{
 		if (rf95.recv(buf, &len))
 		{
-			if (buf[2] == (buf[0] ^ buf[1]))
-			{
-				DATA_TYPE = buf[0];
-				DATA_VALUE = buf[1];
-				DATA_ERROR = buf[2];
-
-				switch (DATA_TYPE)
+			if (rf95.headerId() == FC_ID) {
+				if (buf[2] == (buf[0] ^ buf[1]))
 				{
-				case 0x01:
-					Serial.print("BATT_VOLTAGE: ");
-					Serial.println(buf[1]);
-					//Serial.println(DATA_VALUE);
-					break;
-				case 0x02:
-					Serial.println("ACK COMMAND");
-					break;
-				case 0x03:
-					Serial.println("Command FAIL");
-					digitalWrite(ERRORLED, HIGH);
-					break;
-				default:
-					Serial.println("FAILED");
-					break;
-				}
-			}
-			else
-			{
-				Serial.println("Recieve FAIL");
-				digitalWrite(ERRORLED, HIGH);
+					DATA_TYPE = buf[0];
+					DATA_VALUE = buf[1];
+					DATA_ERROR = buf[2];
 
+					switch (DATA_TYPE)
+					{
+					case 0x01:
+						Serial.print("BATT_VOLTAGE: ");
+						Serial.println(buf[1]);
+						//Serial.println(DATA_VALUE);
+						break;
+					case 0x02:
+						Serial.println("ACK COMMAND");
+						break;
+					case 0x03:
+						Serial.println("Command FAIL");
+						digitalWrite(ERRORLED, HIGH);
+						break;
+					default:
+						Serial.println("FAILED");
+						break;
+					}
+				}
+				else
+				{
+					Serial.println("Recieve FAIL");
+					digitalWrite(ERRORLED, HIGH);
+
+				}
+				//Serial.println((char*)buf);
+				//Serial.print("RSSI: ");
+				//Serial.println(rf95.lastRssi(), DEC);
 			}
-			//Serial.println((char*)buf);
-			//Serial.print("RSSI: ");
-			//Serial.println(rf95.lastRssi(), DEC);
+			else { Serial.println("Not my message."); }
+
 		}
 		else
 		{
 			Serial.println("Receive failed");
 			digitalWrite(ERRORLED, HIGH);							//DATA_TYPE: 1-data, 2-ack, 3-error
+			
 		}
 	}
 	else
