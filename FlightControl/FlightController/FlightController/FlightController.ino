@@ -258,15 +258,6 @@ void loop()
 
 
 
-	//ég sendi stærð sem er *strengur 
-	//og byrjar á radiopacket í minninu, og ég ætla að senda 20 sæti.
-
-	//Þetta er það sem ég ætla að senda:
-	//ég ætla að hafa 4 byte, fyrsta er ID, annað er message type, þriðja
-	//er value. Fyrstu þrjú byte-in eru XOR-uð saman og það sett í fjórða byte-ið.
-	//að XOR-a saman er ^ merkið. þegar pakkinn er móttekinn eru 3 fyrstu bætin
-	//aftur XOR-uð saman og það borið saman við fjórða byte-ið úr sendingunni.
-	//Ef scramble == 4th byte recieved -> allt er í lagi. Halda áfram.
 
 
 

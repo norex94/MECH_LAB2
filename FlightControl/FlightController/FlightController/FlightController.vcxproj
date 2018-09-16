@@ -77,10 +77,10 @@
       <WarningLevel>Level3</WarningLevel>
       <Optimization>Disabled</Optimization>
       <SDLCheck>true</SDLCheck>
-      <AdditionalIncludeDirectories>%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-      <ForcedIncludeFiles>%(ForcedIncludeFiles)</ForcedIncludeFiles>
-      <IgnoreStandardIncludePath>true</IgnoreStandardIncludePath>
-      <PreprocessorDefinitions>%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>$(ProjectDir)..\FlightController;C:\Users\Arnór\AppData\Local\arduino15\packages\adafruit\hardware\samd\1.2.2\libraries\SPI;$(ProjectDir)..\..\..\..\..\Arduino\libraries\RadioHead;C:\Program Files (x86)\Arduino\libraries;$(ProjectDir)..\..\..\..\..\Arduino\libraries;C:\Users\Arnór\AppData\Local\arduino15\packages\adafruit\hardware\samd\1.2.2\libraries;C:\Users\Arnór\AppData\Local\arduino15\packages\adafruit\hardware\samd\1.2.2\cores\arduino;C:\Users\Arnór\AppData\Local\arduino15\packages\adafruit\hardware\samd\1.2.2\cores\arduino\avr;C:\Users\Arnór\AppData\Local\arduino15\packages\adafruit\hardware\samd\1.2.2\cores\arduino\USB;C:\Users\Arnór\AppData\Local\arduino15\packages\adafruit\hardware\samd\1.2.2\variants\feather_m0_express;C:\Users\Arnór\AppData\Local\arduino15\packages\arduino\tools\CMSIS\4.5.0\CMSIS\Include\;C:\Users\Arnór\AppData\Local\arduino15\packages\adafruit\tools\CMSIS-Atmel\1.2.0\CMSIS\Device\ATMEL\;C:\Users\Arnór\AppData\Local\arduino15\packages\arduino\tools\arm-none-eabi-gcc\4.8.3-2014q1\arm-none-eabi\include\c++\4.8.3;C:\Users\Arnór\AppData\Local\arduino15\packages\arduino\tools\arm-none-eabi-gcc\4.8.3-2014q1\arm-none-eabi\include\c++\4.8.3\arm-none-eabi;C:\Users\Arnór\AppData\Local\arduino15\packages\arduino\tools\arm-none-eabi-gcc\4.8.3-2014q1\arm-none-eabi\include\c++\4.8.3\bits;C:\Users\Arnór\AppData\Local\arduino15\packages\arduino\tools\arm-none-eabi-gcc\4.8.3-2014q1\arm-none-eabi\include;C:\Users\Arnór\AppData\Local\arduino15\packages\arduino\tools\arm-none-eabi-gcc\4.8.3-2014q1\arm-none-eabi\include\sys;C:\Users\Arnór\AppData\Local\arduino15\packages\adafruit\hardware\samd\1.2.2\system;C:\Users\Arnór\AppData\Local\arduino15\packages\adafruit\hardware\samd\avr;C:\Users\Arnór\AppData\Local\arduino15\packages\adafruit\hardware\samd\usb;C:\Users\Arnór\AppData\Local\arduino15\packages\arduino\tools\arm-none-eabi-gcc\4.8.3-2014q1\lib\gcc\arm-none-eabi\4.8.3\include;C:\Users\Arnór\AppData\Local\arduino15\packages\arduino\tools\CMSIS\4.5.0;C:\Users\Arnór\AppData\Local\arduino15\packages\arduino\tools\CMSIS\4.5.0\Device\ATMEL\samd21\include;C:\Users\Arnór\AppData\Local\arduino15\packages\arduino\tools\CMSIS\4.5.0\CMSIS\include;C:\Users\Arnór\AppData\Local\arduino15\packages\arduino\tools\CMSIS\4.5.0\Device\ATMEL\samd21\include\component;C:\Users\Arnór\AppData\Local\arduino15\packages\arduino\tools\CMSIS\4.5.0\Device\ATMEL\samd21\include\instance;C:\Users\Arnór\AppData\Local\arduino15\packages\arduino\tools\CMSIS\4.5.0\Device\ATMEL\samd21\include\pio;C:\Users\Arnór\AppData\Local\arduino15\packages\arduino\tools\CMSIS\4.5.0\Device\ATMEL\samd21\include\component;C:\Users\Arnór\AppData\Local\arduino15\packages\arduino\tools\CMSIS-Atmel\1.0.0\CMSIS\Device\ATMEL\samd21\include;C:\Users\Arnór\AppData\Local\arduino15\packages\arduino\tools\CMSIS\CMSIS\include;C:\Users\Arnór\AppData\Local\arduino15\packages\arduino\tools\CMSIS\CMSIS-Atmel\1.0.0\CMSIS\Device\ATMEL\samd21\include\component;C:\Users\Arnór\AppData\Local\arduino15\packages\arduino\tools\CMSIS\CMSIS-Atmel\1.0.0\CMSIS\Device\ATMEL\samd21\include\instance;C:\Users\Arnór\AppData\Local\arduino15\packages\arduino\tools\CMSIS\CMSIS-Atmel\1.0.0\CMSIS\Device\ATMEL\samd21\include\pio;C:\Users\Arnór\AppData\Local\arduino15\packages\arduino\tools\CMSIS\CMSIS-Atmel\1.0.0\CMSIS\Device\ATMEL\samd21\include\component;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <ForcedIncludeFiles>$(ProjectDir)__vm\.FlightController.vsarduino.h;%(ForcedIncludeFiles)</ForcedIncludeFiles>
+      <IgnoreStandardIncludePath>false</IgnoreStandardIncludePath>
+      <PreprocessorDefinitions>_VMDEBUG=1;F_CPU=48000000L;ARDUINO=10805;ARDUINO_SAMD_FEATHER_M0_EXPRESS;ARDUINO_ARCH_SAMD;ARDUINO_SAMD_ZERO;ARDUINO_SAMD_FEATHER_M0;ARM_MATH_CM0PLUS;ADAFRUIT_FEATHER_M0_EXPRESS;__SAMD21G18A__;USB_VID=0x239A;USB_PID=0x801B;USBCON;__cplusplus=201103L;_VMICRO_INTELLISENSE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
     </ClCompile>
     <Link>
       <GenerateDebugInformation>true</GenerateDebugInformation>
@@ -111,7 +111,15 @@
       <FileType>CppCode</FileType>
     </None>
   </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="__vm\.FlightController.vsarduino.h" />
+  </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
   </ImportGroup>
+  <ProjectExtensions>
+    <VisualStudio>
+      <UserProperties arduino.upload.port="COM6" />
+    </VisualStudio>
+  </ProjectExtensions>
 </Project>
