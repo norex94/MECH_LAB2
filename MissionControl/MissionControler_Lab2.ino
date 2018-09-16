@@ -17,10 +17,10 @@
 #define SELF_DESTRUCT	16
 
 //Mission Control caller ID
-const uint8_t MC_ID = 0x80;
+const uint8_t MC_ID = 9;
 
 //Flight Computer caller ID
-const uint8_t FC_ID = 0x81;
+const uint8_t FC_ID = 8;
 
 //two types of commands: set state & set throttle
 uint8_t CMD_SET_STATE = 0x01; // B 0000 0001;
@@ -176,7 +176,8 @@ void sendCOMMAND()
 	digitalWrite(ERRORLED, LOW);
 	checkButtons();
 	rf95.setHeaderId(MC_ID);
-	Serial.println("Transmitting...");
+	Serial.print("Transmitting on: ");
+	Serial.println(MC_ID);
 	rf95.send((uint8_t *)COMMAND, COMMAND_size);
 	delay(10);
 	rf95.waitPacketSent();
@@ -189,7 +190,7 @@ void recieveDATA()
 	uint8_t buf[COMMAND_size];
 	uint8_t len = sizeof(buf);
 	checkButtons();
-	Serial.println("Waiting for reply...");
+	//Serial.println("Waiting for reply...");
 	//MAX wait for DATA is set 1 sec.
 	if (rf95.waitAvailableTimeout(1000))
 	{
@@ -231,7 +232,10 @@ void recieveDATA()
 				//Serial.print("RSSI: ");
 				//Serial.println(rf95.lastRssi(), DEC);
 			}
-			else { Serial.println("Not my message."); }
+			else {
+				Serial.println("Not my message, ID:");
+				Serial.println(rf95.headerId());
+			}
 
 		}
 		else
@@ -285,11 +289,12 @@ void loop()
 	}
 	//if time passed (skoða excel check listann fyrir states) skipta um state og eitthvað svoleiðis...
 	//annars alltaf senda throttle stillingar.
-	setCommandType(2);
+
+	setCommandType(1);
 	readThrottle();
 	sendCOMMAND();
 
-
+	delay(1000);
 
 
 

@@ -23,10 +23,10 @@
 #define SELF_DESTRUCT	16
 
 //Mission Control caller ID
-const uint8_t MC_ID = 0x80;
+const uint8_t MC_ID = 9;
 
 //Flight Computer caller ID
-const uint8_t FC_ID = 0x81;
+const uint8_t FC_ID = 8;
 
 //two types of commands: set state & set throttle
 uint8_t CMD_SET_STATE = 0x01; // B 0000 0001;
@@ -178,11 +178,12 @@ void sendBack()
 	COMMAND[2] = CMD_CHECK;
 	digitalWrite(ERRORLED, LOW);
 	rf95.setHeaderId(FC_ID);
-	Serial.println("Transmitting...");
+	//Serial.print("Transmitting on: ");
+	//Serial.println(FC_ID);
 	rf95.send((uint8_t *)COMMAND, COMMAND_size);
 	delay(10);
 	rf95.waitPacketSent();
-	Serial.println("Command Sent");
+	Serial.println("Reply Sent");
 	recieveDATA();
 }
 
@@ -191,7 +192,7 @@ void recieveDATA()
 	uint8_t buf[COMMAND_size];
 	uint8_t len = sizeof(buf);
 	
-	Serial.println("Waiting for reply...");
+	//Serial.println("Waiting for reply...");
 	//MAX wait for DATA is set 1 sec.
 	if (rf95.waitAvailableTimeout(1000))
 	{
@@ -208,15 +209,15 @@ void recieveDATA()
 					switch (DATA_TYPE)
 					{
 					case 0x01:
-						Serial.print("Set Stage: ");
+						Serial.print("Stage recived: ");
 						Serial.println(buf[1]);
-						setMessageType(DATA_TYPE);
+						setState(DATA_TYPE);
 						sendBack();
 						break;
 					case 0x02:
-						Serial.println("Set Throttle");
+						Serial.println("Throttle recived: ");
 						Serial.println(buf[1]);
-						setMessageType(DATA_TYPE);
+						setState(DATA_TYPE);
 						sendBack();
 						break;
 					}
@@ -228,7 +229,10 @@ void recieveDATA()
 
 				}
 			}
-			else { Serial.println("Not my message."); }
+			else { 
+				//Serial.println("Not my message, ID:"); 
+				//Serial.println(rf95.headerId());
+			}
 			//Serial.println((char*)buf);
 			//Serial.print("RSSI: ");
 			//Serial.println(rf95.lastRssi(), DEC);
@@ -254,7 +258,7 @@ void loop()
 
 
 	recieveDATA();
-	delay(900);
+	delay(500);
 
 
 
