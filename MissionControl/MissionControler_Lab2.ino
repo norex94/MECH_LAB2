@@ -4,6 +4,12 @@
 #include <SPI.h>
 #include <RH_RF95.h>
 
+#include <LiquidCrystal.h>
+	     	   //RS EN BD4 BD5 BD6 BD7
+LiquidCrystal lcd(13, 12, 11, 10, 9, 6);
+
+
+
 // Change to 434.0 or other frequency, must match RX's freq!
 #define RF95_FREQ 430.0
 
@@ -61,6 +67,18 @@ int16_t packetnum = 0;
 
 void setup()
 {
+	pinMode(13, OUTPUT);
+	pinMode(12, OUTPUT);
+	pinMode(11, OUTPUT);
+	pinMode(10, OUTPUT);
+	pinMode(9, OUTPUT);
+	pinMode(6, OUTPUT);
+	
+	lcd.begin(16, 2);
+	lcd.print("hello, world!");
+
+
+
 	pinMode(RFM95_RST, OUTPUT);
 	digitalWrite(RFM95_RST, HIGH);
 	pinMode(ERRORLED, OUTPUT);
@@ -107,7 +125,7 @@ void setup()
 
 
 
-
+	testRun();
 
 }
 
@@ -273,6 +291,60 @@ void checkButtons()
 	}
 }
 
+
+void testRun() {
+
+	Serial.println("Starting signal test... ");
+	while (digitalRead(ERRORLED) == LOW) {
+		Serial.print("Trying... ");
+		sendCOMMAND(CMD_SET_STATE, 1);
+		delay(1000);
+
+	}
+	Serial.println();
+	Serial.print("Done, Signal:");
+	Serial.println(rf95.lastRssi());
+
+	Serial.println("Starting fuel pump test... ");
+	while (digitalRead(ERRORLED) == LOW) {
+		Serial.print("Set state... ");
+		sendCOMMAND(CMD_SET_STATE, 7);
+		delay(1000);
+
+	}
+	delay(1000);
+	while (digitalRead(ERRORLED) == LOW) {
+		Serial.print("Reseting... ");
+		sendCOMMAND(CMD_SET_STATE,1);
+		delay(1000);
+
+	}
+	Serial.println();
+	Serial.print("Done.");
+
+	Serial.println("Starting parachute test... ");
+	while (digitalRead(ERRORLED) == LOW) {
+		Serial.print("Set state... ");
+		sendCOMMAND(CMD_SET_STATE, 8);
+		delay(1000);
+
+	}
+	delay(1000);
+	while (digitalRead(ERRORLED) == LOW) {
+		Serial.print("Reseting... ");
+		sendCOMMAND(CMD_SET_STATE, 1);
+		delay(1000);
+
+	}
+	Serial.println();
+	Serial.print("Done.");
+
+	Serial.println("All test done.");
+	delay(2000);
+
+
+}
+
 void loop()
 {
 /*
@@ -298,7 +370,7 @@ void loop()
 	*/
 	//if time passed (skoða excel check listann fyrir states) skipta um state og eitthvað svoleiðis...
 	//annars alltaf senda throttle stillingar.
-
+	lcd.clear();
 	//setCommandType(1);
 	readThrottle();
 	sendCOMMAND(CMD_SET_STATE,1);
@@ -308,7 +380,7 @@ void loop()
 	readThrottle();
 	delay(100);
 
-
+	lcd.print("hello");
 	Serial.println("____________________");
 
 	//ég sendi stærð sem er *strengur 
