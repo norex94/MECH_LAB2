@@ -4,23 +4,29 @@
 #include <SPI.h>
 #include <RH_RF95.h>
 
+
+// include the library code:
 #include <LiquidCrystal.h>
-	     	   //RS EN BD4 BD5 BD6 BD7
-LiquidCrystal lcd(13, 12, 11, 10, 9, 6);
 
-
+// initialize the library by associating any needed LCD interface pin
+// with the arduino pin number it is connected to
+//(12, 13, 18, 17, 16, 15);
+const int rs = 12, en = 13, d4 = 18, d5 = 17, d6 = 16, d7 = 15;
+LiquidCrystal lcd(rs, en, d4, d5, d6, d7);
 
 // Change to 434.0 or other frequency, must match RX's freq!
 #define RF95_FREQ 430.0
-
 #define RFM95_CS		5
 #define RFM95_RST		6
-#define ERRORLED		9
 #define RFM95_INT		10
 
-#define THROTTLE		14
-#define KILL_ENGINE		15
-#define SELF_DESTRUCT	16
+#define ERRORLED			1
+#define PIN_THROTTLE		0
+#define PIN_KILL_ENGINE		22
+#define PIN_SELF_DESTRUCT	23
+
+
+
 
 //Mission Control caller ID
 const uint8_t MC_ID = 9;
@@ -67,33 +73,14 @@ int16_t packetnum = 0;
 
 void setup()
 {
-	pinMode(13, OUTPUT);
-	pinMode(12, OUTPUT);
-	pinMode(11, OUTPUT);
-	pinMode(10, OUTPUT);
-	pinMode(9, OUTPUT);
-	pinMode(6, OUTPUT);
-	
-	lcd.begin(16, 2);
-	lcd.print("hello, world!");
-
-
 
 	pinMode(RFM95_RST, OUTPUT);
 	digitalWrite(RFM95_RST, HIGH);
 	pinMode(ERRORLED, OUTPUT);
 	digitalWrite(ERRORLED, LOW);
-	pinMode(THROTTLE, INPUT);
-	pinMode(KILL_ENGINE, INPUT_PULLUP);
-	pinMode(SELF_DESTRUCT, INPUT_PULLUP);
-
-
-	//Serial.begin(115200);
-	//while (!Serial) {
-	//  delay(1);
-	//}
-
-	delay(100);
+	pinMode(PIN_THROTTLE, INPUT);
+	pinMode(PIN_KILL_ENGINE, INPUT_PULLUP);
+	pinMode(PIN_SELF_DESTRUCT, INPUT_PULLUP);
 
 	Serial.println("Initializing");
 
@@ -125,16 +112,17 @@ void setup()
 
 
 
-	testRun();
-
+	//testRun();
+	lcd.begin(16, 2);
+	delay(10);
+	lcd.print("This is working");
 }
 
 uint32_t readThrottle()
 {
 	//The entire voltage range is read with 32 bits and converted to 8 bits (1 byte) for transmission..
-	float SCALE = 0.25;
-	uint32_t temp_VALUE = analogRead(THROTTLE);
-	return SCALE * temp_VALUE;
+	uint32_t temp_VALUE = map(analogRead(PIN_THROTTLE),0,1023,0,100);
+	return temp_VALUE;
 	
 }
 
@@ -281,21 +269,22 @@ void recieveDATA()
 
 void checkButtons()
 {
-	if (!digitalRead(KILL_ENGINE))
+	if (!digitalRead(PIN_KILL_ENGINE))
 	{
 		KILL_SWITCH = true;
 	}
-	if (!digitalRead(SELF_DESTRUCT))
+	if (!digitalRead(PIN_SELF_DESTRUCT))
 	{
 		FAIL_SAFE = true;
 	}
+
 }
 
 
 void testRun() {
 
 	Serial.println("Starting signal test... ");
-	while (digitalRead(ERRORLED) == LOW) {
+	while (digitalRead(ERRORLED) == HIGH) {
 		Serial.print("Trying... ");
 		sendCOMMAND(CMD_SET_STATE, 1);
 		delay(1000);
@@ -306,14 +295,14 @@ void testRun() {
 	Serial.println(rf95.lastRssi());
 
 	Serial.println("Starting fuel pump test... ");
-	while (digitalRead(ERRORLED) == LOW) {
+	while (digitalRead(ERRORLED) == HIGH) {
 		Serial.print("Set state... ");
 		sendCOMMAND(CMD_SET_STATE, 7);
 		delay(1000);
 
 	}
 	delay(1000);
-	while (digitalRead(ERRORLED) == LOW) {
+	while (digitalRead(ERRORLED) == HIGH) {
 		Serial.print("Reseting... ");
 		sendCOMMAND(CMD_SET_STATE,1);
 		delay(1000);
@@ -323,14 +312,14 @@ void testRun() {
 	Serial.print("Done.");
 
 	Serial.println("Starting parachute test... ");
-	while (digitalRead(ERRORLED) == LOW) {
+	while (digitalRead(ERRORLED) == HIGH) {
 		Serial.print("Set state... ");
 		sendCOMMAND(CMD_SET_STATE, 8);
 		delay(1000);
 
 	}
 	delay(1000);
-	while (digitalRead(ERRORLED) == LOW) {
+	while (digitalRead(ERRORLED) == HIGH) {
 		Serial.print("Reseting... ");
 		sendCOMMAND(CMD_SET_STATE, 1);
 		delay(1000);
@@ -342,6 +331,30 @@ void testRun() {
 	Serial.println("All test done.");
 	delay(2000);
 
+
+}
+
+unsigned int tmp = 0; //temporary
+
+void printLCD() {
+	String tmp;
+	lcd.clear();
+	
+	lcd.setCursor(0, 0);
+	tmp = "STG:" + (String)CMD_VALUE;
+	lcd.print(tmp);
+	
+	lcd.setCursor(8, 0);
+	tmp = "BAT:" + (String)BATTERY+"V";
+	lcd.print(tmp);
+
+	lcd.setCursor(0, 1);
+	tmp = "THR:" + (String)readThrottle()+"%";
+	lcd.print(tmp);
+
+	lcd.setCursor(8,1);
+	tmp = "TIM:" + (String)(millis()/1000)+"s";
+	lcd.print(tmp);
 
 }
 
@@ -368,21 +381,17 @@ void loop()
 		FAIL_SAFE = false;
 	}
 	*/
-	//if time passed (skoða excel check listann fyrir states) skipta um state og eitthvað svoleiðis...
-	//annars alltaf senda throttle stillingar.
-	lcd.clear();
-	//setCommandType(1);
-	readThrottle();
-	sendCOMMAND(CMD_SET_STATE,1);
+
+	sendCOMMAND(CMD_SET_STATE,tmp);
 	delay(100);
 
 	sendCOMMAND(CMD_SET_THROTTLE,readThrottle());
-	readThrottle();
 	delay(100);
 
-	lcd.print("hello");
+
 	Serial.println("____________________");
 
+	printLCD();
 	//ég sendi stærð sem er *strengur 
 	//og byrjar á radiopacket í minninu, og ég ætla að senda 20 sæti.
 
@@ -393,6 +402,8 @@ void loop()
 	//aftur XOR-uð saman og það borið saman við fjórða byte-ið úr sendingunni.
 	//Ef scramble == 4th byte recieved -> allt er í lagi. Halda áfram.
 
-
-
+	
+	tmp++;
+	if (tmp > 11) { tmp = 0; }
+	setState(tmp);
 }

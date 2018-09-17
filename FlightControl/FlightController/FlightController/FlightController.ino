@@ -18,13 +18,14 @@
 #define ERRORLED		9
 #define RFM95_INT		10
 
+#define FUELPUMP		19
 #define ENGINE			18
-#define PARACHUTE		19
+#define PARACHUTE		17
 #define BATTERY			14
 
 #define REPLY_ACK 0x01
 #define REPLY_BATT 0x02
-#define REPLY_ERROR 0x03
+#define REPLY_ERROR 0x03	
 
 //Mission Control caller ID
 const uint8_t MC_ID = 9;
@@ -52,14 +53,16 @@ uint8_t DATA_ERROR;
 
 //Data
 uint8_t DATA_BATTERY;
+uint8_t DATA_THROTTLE;
+
+uint8_t Current_Stage = 0;
 
 bool KILL_SWITCH = false;
 bool FAIL_SAFE = false;
 
 enum STATE_NAMES { START, TEST, READY, IGNITION, ASCENT, COASTING, APOGEE, DESCENT, LAND, DISABLE, RESET, SELFDESTRUCT };
 
-//Things to print on lcd:
-char currentState[8];
+
 
 // Singleton instance of the radio driver
 RH_RF95 rf95(RFM95_CS, RFM95_INT);
@@ -76,7 +79,8 @@ void setup()
 	
 	pinMode(ENGINE, OUTPUT);
 	pinMode(PARACHUTE, OUTPUT);
-	
+	pinMode(FUELPUMP, OUTPUT);
+
 	pinMode(BATTERY, INPUT);
 
 
@@ -119,9 +123,8 @@ void setup()
 uint32_t readBattery()
 {
 	//The entire voltage range is read with 32 bits and converted to 8 bits (1 byte) for transmission..
-	float SCALE = 0.25;
-	uint32_t temp_VALUE = analogRead(BATTERY);
-	return SCALE * temp_VALUE;
+	uint32_t temp_VALUE = map(analogRead(BATTERY), 0, 1023, 0, 33);
+	return temp_VALUE;
 
 }
 
@@ -132,39 +135,75 @@ void setState(uint8_t state)
 	{
 	case 0:
 		//CMD_VALUE = START;
+		//igitalWrite(ENGINE, LOW);
+		digitalWrite(PARACHUTE, LOW);
+		digitalWrite(FUELPUMP, LOW);
 		break;
 	case 1:
 		//CMD_VALUE = TEST;
+		//digitalWrite(ENGINE, LOW);
+		digitalWrite(PARACHUTE, LOW);
+		digitalWrite(FUELPUMP, LOW);
 		break;
 	case 2:
 		//CMD_VALUE = READY;
+		//digitalWrite(ENGINE, LOW);
+		digitalWrite(PARACHUTE, LOW);
+		digitalWrite(FUELPUMP, LOW);
 		break;
 	case 3:
 		//CMD_VALUE = IGNITION;
+		//digitalWrite(ENGINE, LOW);
+		digitalWrite(PARACHUTE, LOW);
+		digitalWrite(FUELPUMP, HIGH);
 		break;
 	case 4:
 		//CMD_VALUE = ASCENT;
+		//digitalWrite(ENGINE, HIGH);
+		digitalWrite(PARACHUTE, LOW);
+		digitalWrite(FUELPUMP, HIGH);
 		break;
 	case 5:
 		//CMD_VALUE = COASTING;
+		//digitalWrite(ENGINE, LOW);
+		digitalWrite(PARACHUTE, LOW);
+		digitalWrite(FUELPUMP, LOW);
 		break;
 	case 6:
 		//CMD_VALUE = APOGEE;
+		//digitalWrite(ENGINE, LOW);
+		digitalWrite(PARACHUTE, HIGH);
+		digitalWrite(FUELPUMP, LOW);
 		break;
 	case 7:
 		//CMD_VALUE = DESCENT;
+		//digitalWrite(ENGINE, LOW);
+		digitalWrite(PARACHUTE, HIGH);
+		digitalWrite(FUELPUMP, LOW);
 		break;
 	case 8:
 		//CMD_VALUE = LAND;
+		//digitalWrite(ENGINE, LOW);
+		digitalWrite(PARACHUTE, LOW);
+		digitalWrite(FUELPUMP, LOW);
 		break;
 	case 9:
 		//CMD_VALUE = DISABLE;
+		//digitalWrite(ENGINE, LOW);
+		digitalWrite(PARACHUTE, LOW);
+		digitalWrite(FUELPUMP, LOW);
 		break;
 	case 10:
 		//CMD_VALUE = RESET;
+		//digitalWrite(ENGINE, LOW);
+		digitalWrite(PARACHUTE, LOW);
+		digitalWrite(FUELPUMP, LOW);
 		break;
 	case 11:
 		//CMD_VALUE = SELFDESTRUCT;
+		//digitalWrite(ENGINE, LOW);
+		digitalWrite(PARACHUTE, LOW);
+		digitalWrite(FUELPUMP, LOW);
 		break;
 	default:
 		break;
@@ -216,13 +255,15 @@ void recieveDATA()
 					case 0x01:
 						Serial.print("#Stage recived: ");
 						Serial.println(buf[1], HEX);
-						setState(DATA_TYPE);
+						Current_Stage = buf[1];
+						setState(Current_Stage);
 						sendBack(REPLY_ACK, DATA_VALUE);
 						break;
 					case 0x02:
 						Serial.print("#Throttle recived: ");
 						Serial.println(buf[1], DEC);
-						setState(DATA_TYPE);
+						DATA_THROTTLE = buf[1];
+						
 						sendBack(REPLY_BATT, DATA_BATTERY);
 						break;
 
@@ -265,19 +306,46 @@ void recieveDATA()
 
 }
 
+//map(DATA_THROTTLE, 0, 100, 0, 255)
+void sound() {
+	analogWrite(ENGINE, 255);
+	delay(DATA_THROTTLE/10);
+	analogWrite(ENGINE, 0);
+	delay(DATA_THROTTLE / 10);
+	analogWrite(ENGINE, 255);
+	delay(DATA_THROTTLE / 10);
+	analogWrite(ENGINE, 0);
+	delay(DATA_THROTTLE / 10);
+	analogWrite(ENGINE, 255);
+	delay(DATA_THROTTLE / 10);
+	analogWrite(ENGINE, 0);
+	delay(DATA_THROTTLE / 10);
+	analogWrite(ENGINE, 255);
+	delay(DATA_THROTTLE / 10);
+	analogWrite(ENGINE, 0);
+	delay(DATA_THROTTLE / 10);
+	analogWrite(ENGINE, 255);
+	delay(DATA_THROTTLE / 10);
+	analogWrite(ENGINE, 0);
+	delay(DATA_THROTTLE / 10);
+	analogWrite(ENGINE, 255);
+	delay(DATA_THROTTLE / 10);
+	analogWrite(ENGINE, 0);
+	delay(DATA_THROTTLE / 10);
 
 
+}
 
 
 
 void loop()
 {
-	
-	
+	//sound();
+
 	Serial.println("____________________");
 	DATA_BATTERY = readBattery();
 	recieveDATA();
-	delay(100);
+	
 	
 
 
