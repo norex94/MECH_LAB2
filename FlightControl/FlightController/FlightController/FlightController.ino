@@ -306,35 +306,6 @@ void recieveDATA()
 
 }
 
-//map(DATA_THROTTLE, 0, 100, 0, 255)
-void sound() {
-	analogWrite(ENGINE, 255);
-	delay(DATA_THROTTLE/10);
-	analogWrite(ENGINE, 0);
-	delay(DATA_THROTTLE / 10);
-	analogWrite(ENGINE, 255);
-	delay(DATA_THROTTLE / 10);
-	analogWrite(ENGINE, 0);
-	delay(DATA_THROTTLE / 10);
-	analogWrite(ENGINE, 255);
-	delay(DATA_THROTTLE / 10);
-	analogWrite(ENGINE, 0);
-	delay(DATA_THROTTLE / 10);
-	analogWrite(ENGINE, 255);
-	delay(DATA_THROTTLE / 10);
-	analogWrite(ENGINE, 0);
-	delay(DATA_THROTTLE / 10);
-	analogWrite(ENGINE, 255);
-	delay(DATA_THROTTLE / 10);
-	analogWrite(ENGINE, 0);
-	delay(DATA_THROTTLE / 10);
-	analogWrite(ENGINE, 255);
-	delay(DATA_THROTTLE / 10);
-	analogWrite(ENGINE, 0);
-	delay(DATA_THROTTLE / 10);
-
-
-}
 
 
 
@@ -345,8 +316,8 @@ void loop()
 	Serial.println("____________________");
 	DATA_BATTERY = readBattery();
 	recieveDATA();
-	
-	
+
+  analogWrite(FUELPUMP, map(DATA_THROTTLE, 0, 100, 0, 255));
 
 
 }
