@@ -18,9 +18,9 @@
 #define ERRORLED		9
 #define RFM95_INT		10
 
-#define FUELPUMP		19
-#define ENGINE			18
-#define PARACHUTE		17
+#define FUELPUMP		15
+#define ENGINE			0
+#define PARACHUTE		1
 #define BATTERY			14
 
 #define REPLY_ACK 0x01
@@ -137,73 +137,81 @@ void setState(uint8_t state)
 		//CMD_VALUE = START;
 		//igitalWrite(ENGINE, LOW);
 		digitalWrite(PARACHUTE, LOW);
-		digitalWrite(FUELPUMP, LOW);
+		digitalWrite(ENGINE, LOW);
 		break;
 	case 1:
 		//CMD_VALUE = TEST;
 		//digitalWrite(ENGINE, LOW);
+		digitalWrite(PARACHUTE, HIGH);
+		analogWrite(FUELPUMP, 255);
+		delay(2000);
+		digitalWrite(ENGINE, HIGH);
+		analogWrite(FUELPUMP, 100);
+		delay(3000);
+		analogWrite(FUELPUMP, 0);
+		digitalWrite(ENGINE, LOW);
 		digitalWrite(PARACHUTE, LOW);
-		digitalWrite(FUELPUMP, LOW);
+		Serial.println("Test Done.");
 		break;
 	case 2:
 		//CMD_VALUE = READY;
 		//digitalWrite(ENGINE, LOW);
 		digitalWrite(PARACHUTE, LOW);
-		digitalWrite(FUELPUMP, LOW);
+		digitalWrite(ENGINE, LOW);
 		break;
 	case 3:
 		//CMD_VALUE = IGNITION;
 		//digitalWrite(ENGINE, LOW);
 		digitalWrite(PARACHUTE, LOW);
-		digitalWrite(FUELPUMP, HIGH);
+		digitalWrite(ENGINE, HIGH);
 		break;
 	case 4:
 		//CMD_VALUE = ASCENT;
 		//digitalWrite(ENGINE, HIGH);
 		digitalWrite(PARACHUTE, LOW);
-		digitalWrite(FUELPUMP, HIGH);
+		digitalWrite(ENGINE, HIGH);
 		break;
 	case 5:
 		//CMD_VALUE = COASTING;
 		//digitalWrite(ENGINE, LOW);
 		digitalWrite(PARACHUTE, LOW);
-		digitalWrite(FUELPUMP, LOW);
+		digitalWrite(ENGINE, LOW);
 		break;
 	case 6:
 		//CMD_VALUE = APOGEE;
 		//digitalWrite(ENGINE, LOW);
 		digitalWrite(PARACHUTE, HIGH);
-		digitalWrite(FUELPUMP, LOW);
+		digitalWrite(ENGINE, LOW);
 		break;
 	case 7:
 		//CMD_VALUE = DESCENT;
 		//digitalWrite(ENGINE, LOW);
 		digitalWrite(PARACHUTE, HIGH);
-		digitalWrite(FUELPUMP, LOW);
+		digitalWrite(ENGINE, LOW);
 		break;
 	case 8:
 		//CMD_VALUE = LAND;
 		//digitalWrite(ENGINE, LOW);
 		digitalWrite(PARACHUTE, LOW);
-		digitalWrite(FUELPUMP, LOW);
+		digitalWrite(ENGINE, LOW);
 		break;
 	case 9:
 		//CMD_VALUE = DISABLE;
 		//digitalWrite(ENGINE, LOW);
 		digitalWrite(PARACHUTE, LOW);
-		digitalWrite(FUELPUMP, LOW);
+		digitalWrite(ENGINE, LOW);
 		break;
 	case 10:
 		//CMD_VALUE = RESET;
 		//digitalWrite(ENGINE, LOW);
 		digitalWrite(PARACHUTE, LOW);
-		digitalWrite(FUELPUMP, LOW);
+		digitalWrite(ENGINE, LOW);
 		break;
 	case 11:
 		//CMD_VALUE = SELFDESTRUCT;
 		//digitalWrite(ENGINE, LOW);
 		digitalWrite(PARACHUTE, LOW);
-		digitalWrite(FUELPUMP, LOW);
+		digitalWrite(ENGINE, LOW);
 		break;
 	default:
 		break;
@@ -316,8 +324,6 @@ void loop()
 	Serial.println("____________________");
 	DATA_BATTERY = readBattery();
 	recieveDATA();
-
-  analogWrite(FUELPUMP, map(DATA_THROTTLE, 0, 100, 0, 255));
-
-
+	analogWrite(FUELPUMP, map(DATA_THROTTLE, 0, 100, 0, 255));
+	//delay(50);
 }

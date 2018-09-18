@@ -23,7 +23,7 @@ LiquidCrystal lcd(rs, en, d4, d5, d6, d7);
 #define ERRORLED			1
 #define PIN_THROTTLE		0
 #define PIN_KILL_ENGINE		22
-#define PIN_SELF_DESTRUCT	23
+
 
 
 
@@ -54,14 +54,15 @@ uint8_t DATA_ERROR;
 //Values
 uint8_t BATTERY;
 
+uint8_t CurrentStateNow=0;
+uint8_t waitTime = 0;
+
 
 bool KILL_SWITCH = false;
 bool FAIL_SAFE = false;
 
 enum STATE_NAMES { START, TEST, READY, IGNITION, ASCENT, COASTING, APOGEE, DESCENT, LAND, DISABLE, RESET, SELFDESTRUCT };
 
-//Things to print on lcd:
-char currentState[8];
 
 // Singleton instance of the radio driver
 RH_RF95 rf95(RFM95_CS, RFM95_INT);
@@ -69,6 +70,10 @@ RH_RF95 rf95(RFM95_CS, RFM95_INT);
 // packet counter, we increment per transmission
 int16_t packetnum = 0;
 
+
+uint32_t startFlightTime = 0;
+uint32_t currentFlightTime = 0;
+uint32_t setTime;
 
 
 void setup()
@@ -79,8 +84,7 @@ void setup()
 	pinMode(ERRORLED, OUTPUT);
 	digitalWrite(ERRORLED, LOW);
 	pinMode(PIN_THROTTLE, INPUT);
-	pinMode(PIN_KILL_ENGINE, INPUT_PULLUP);
-	pinMode(PIN_SELF_DESTRUCT, INPUT_PULLUP);
+	pinMode(20, INPUT);	
 
 	Serial.println("Initializing");
 
@@ -103,14 +107,7 @@ void setup()
 	}
 	Serial.print("Frequency set to: "); Serial.println(RF95_FREQ);
 
-	// Defaults after init are 434.0MHz, 13dBm, Bw = 125 kHz, Cr = 4/5, Sf = 128chips/symbol, CRC on
-
-	// The default transmitter power is 13dBm, using PA_BOOST.
-	// If you are using RFM95/96/97/98 modules which uses the PA_BOOST transmitter pin, then 
-	// you can set transmitter powers from 5 to 23 dBm:
 	rf95.setTxPower(23, false);
-
-
 
 	//testRun();
 	lcd.begin(16, 2);
@@ -141,12 +138,15 @@ void setState(uint8_t state)
 		break;
 	case 3:
 		CMD_VALUE = IGNITION;
+		waitTime = 2;
 		break;
 	case 4:
 		CMD_VALUE = ASCENT;
+		waitTime = 4;
 		break;
 	case 5:
 		CMD_VALUE = COASTING;
+
 		break;
 	case 6:
 		CMD_VALUE = APOGEE;
@@ -171,7 +171,6 @@ void setState(uint8_t state)
 	}
 }
 
-
 void sendCOMMAND(uint8_t CMD_TYPE, uint8_t CMD_VALUE)
 {
 	//check is the XOR of TYPE and VALUE
@@ -179,7 +178,7 @@ void sendCOMMAND(uint8_t CMD_TYPE, uint8_t CMD_VALUE)
 	COMMAND[0] = CMD_TYPE;
 	COMMAND[1] = CMD_VALUE;
 	COMMAND[2] = CMD_CHECK;
-	checkButtons();
+	
 	rf95.setHeaderId(MC_ID);
 	//Serial.print("Transmitting on: ");
 	//Serial.println(MC_ID);
@@ -188,8 +187,8 @@ void sendCOMMAND(uint8_t CMD_TYPE, uint8_t CMD_VALUE)
 	rf95.waitPacketSent();
 	Serial.print("Command Sent: ");
 	Serial.print(CMD_TYPE, HEX);
-	Serial.print(" Data: ");
-	Serial.println(CMD_VALUE, DEC);
+	//Serial.print(" Data: ");
+	//Serial.println(CMD_VALUE, DEC);
 
 	recieveDATA();
 }
@@ -198,10 +197,10 @@ void recieveDATA()
 {
 	uint8_t buf[COMMAND_size];
 	uint8_t len = sizeof(buf);
-	checkButtons();
+	
 	//Serial.println("Waiting for reply...");
 	//MAX wait for DATA is set 1 sec.
-	if (rf95.waitAvailableTimeout(1000))
+	if (rf95.waitAvailableTimeout(100))
 	{
 		if (rf95.recv(buf, &len))
 		{
@@ -267,81 +266,38 @@ void recieveDATA()
 
 }
 
-void checkButtons()
+bool checkKillButton()
 {
-	if (!digitalRead(PIN_KILL_ENGINE))
-	{
-		KILL_SWITCH = true;
+	if (readThrottle() < 5){
+		sendCOMMAND(CMD_SET_STATE, APOGEE);
+		setTimeKeeper(2000);
+		CurrentStateNow = APOGEE;
+		lcd.setCursor(0, 0);
+		lcd.print("KILL ENGINE");
+		delay(2000);
+		return true; 
 	}
-	if (!digitalRead(PIN_SELF_DESTRUCT))
-	{
-		FAIL_SAFE = true;
+	else{
+		return false;
 	}
-
 }
-
-
-void testRun() {
-
-	Serial.println("Starting signal test... ");
-	while (digitalRead(ERRORLED) == HIGH) {
-		Serial.print("Trying... ");
-		sendCOMMAND(CMD_SET_STATE, 1);
-		delay(1000);
-
-	}
-	Serial.println();
-	Serial.print("Done, Signal:");
-	Serial.println(rf95.lastRssi());
-
-	Serial.println("Starting fuel pump test... ");
-	while (digitalRead(ERRORLED) == HIGH) {
-		Serial.print("Set state... ");
-		sendCOMMAND(CMD_SET_STATE, 7);
-		delay(1000);
-
-	}
-	delay(1000);
-	while (digitalRead(ERRORLED) == HIGH) {
-		Serial.print("Reseting... ");
-		sendCOMMAND(CMD_SET_STATE,1);
-		delay(1000);
-
-	}
-	Serial.println();
-	Serial.print("Done.");
-
-	Serial.println("Starting parachute test... ");
-	while (digitalRead(ERRORLED) == HIGH) {
-		Serial.print("Set state... ");
-		sendCOMMAND(CMD_SET_STATE, 8);
-		delay(1000);
-
-	}
-	delay(1000);
-	while (digitalRead(ERRORLED) == HIGH) {
-		Serial.print("Reseting... ");
-		sendCOMMAND(CMD_SET_STATE, 1);
-		delay(1000);
-
-	}
-	Serial.println();
-	Serial.print("Done.");
-
-	Serial.println("All test done.");
-	delay(2000);
-
-
-}
-
-unsigned int tmp = 0; //temporary
 
 void printLCD() {
 	String tmp;
+	if (CurrentStateNow == 0) { tmp = "0 START"; }
+	else if (CurrentStateNow == 1) { tmp = "1 TEST"; }
+	else if (CurrentStateNow == 3) { tmp = "3 READY"; }
+	else if (CurrentStateNow == 4) { tmp = "4 IGNIT"; }
+	else if (CurrentStateNow == 5) { tmp = "5 ASCEN"; }
+	else if (CurrentStateNow == 6) { tmp = "6 APOGE"; }
+	else if (CurrentStateNow == 7) { tmp = "7 DESCE"; }
+	else if (CurrentStateNow == 8) { tmp = "8 LAND"; }
+	else if (CurrentStateNow == 9) { tmp = "9 DISAB"; }
+	else if (CurrentStateNow == 10) { tmp = "10 REST";}
+
 	lcd.clear();
-	
+	   	 
 	lcd.setCursor(0, 0);
-	tmp = "STG:" + (String)CMD_VALUE;
 	lcd.print(tmp);
 	
 	lcd.setCursor(8, 0);
@@ -353,57 +309,195 @@ void printLCD() {
 	lcd.print(tmp);
 
 	lcd.setCursor(8,1);
-	tmp = "TIM:" + (String)(millis()/1000)+"s";
+	tmp = "TIM:" + (String)currentFlightTime+"s";
 	lcd.print(tmp);
 
 }
 
+void setTimeKeeper(uint32_t wait) {
+	setTime = millis() + wait;
+	Serial.println("Timer set.");
+	return;
+}
+
+bool timeKeeper() {
+	if (millis() > setTime) {
+		Serial.println("Timer done.");
+		return true;		
+	}
+	else { 
+		Serial.println("Timer not done.");
+		return false; 
+	}
+}
+
+void flightTimeSet() {
+	startFlightTime = millis();
+}
+
+void FlightTime() {
+
+	currentFlightTime = (millis()-startFlightTime)/1000;
+
+}
+
+void currentState()
+{
+	switch (CurrentStateNow)
+	{
+	case 0:
+		sendCOMMAND(CMD_SET_STATE, START);
+		delay(2000);
+		//Do nothing
+		CurrentStateNow++;
+		Serial.println("Current stage:" + CurrentStateNow);
+		break;
+
+	case 1:
+		//Test state
+		
+		sendCOMMAND(CMD_SET_STATE, TEST);
+		delay(500);
+		//sendCOMMAND(CMD_SET_STATE, TEST);
+		
+		Serial.print("Test done. Last RSSI:");
+		Serial.println(rf95.lastRssi());
+		lcd.clear();
+		lcd.setCursor(5, 0);
+		lcd.print("Last RSSI:");
+		lcd.setCursor(5, 1);
+		lcd.print(+rf95.lastRssi());
+		
+		delay(6000);
+		
+		CurrentStateNow++;
+		Serial.println("Current stage:"+CurrentStateNow);
+		
+		break;
+
+	case 2:
+		//Ready Stage
+		lcd.setCursor(0, 0);
+		lcd.print("3 READY");
+		sendCOMMAND(CMD_SET_STATE, READY);
+		delay(10);
+		sendCOMMAND(CMD_SET_THROTTLE, readThrottle());
+		
+		if (readThrottle() > 10) {
+			CurrentStateNow++;
+			Serial.println("Current stage:" + CurrentStateNow);
+			setTimeKeeper(2000);
+		}
+		break;
+	
+	case 3:
+		printLCD();
+		sendCOMMAND(CMD_SET_STATE, IGNITION);
+		flightTimeSet();
+		FlightTime();
+		delay(100);
+		sendCOMMAND(CMD_SET_THROTTLE, readThrottle());
+		checkKillButton();
+		if (timeKeeper()) {
+			CurrentStateNow++;
+			setTimeKeeper(8000);
+			Serial.println("Current stage:" + CurrentStateNow);
+		}
+		break;
+	
+	case 4:
+		sendCOMMAND(CMD_SET_STATE, ASCENT);
+		FlightTime();
+		delay(100);
+		checkKillButton();
+		sendCOMMAND(CMD_SET_THROTTLE, readThrottle());
+		if (timeKeeper()) {
+			CurrentStateNow++;
+			setTimeKeeper(10000);	
+			Serial.println("Current stage:" + CurrentStateNow);
+		}
+		
+		break;
+	case 5:
+		sendCOMMAND(CMD_SET_STATE, COASTING);
+		FlightTime();
+		delay(100);
+		checkKillButton();
+		sendCOMMAND(CMD_SET_THROTTLE, 0);
+		if (timeKeeper()) {
+			CurrentStateNow++;
+			setTimeKeeper(2000);
+			Serial.println("Current stage:" + CurrentStateNow);
+		}
+		break;
+	case 6:
+		sendCOMMAND(CMD_SET_STATE, APOGEE);
+		FlightTime();
+		delay(100);
+		checkKillButton();
+		sendCOMMAND(CMD_SET_THROTTLE, 0);
+		if (timeKeeper()) {
+			CurrentStateNow++;
+			setTimeKeeper(9000);
+			Serial.println("Current stage:" + CurrentStateNow);
+		}	
+		break;
+	case 7:
+		sendCOMMAND(CMD_SET_STATE, DESCENT);
+		FlightTime();
+		delay(100);
+		sendCOMMAND(CMD_SET_THROTTLE, 0);
+		if (timeKeeper()) {
+			CurrentStateNow++;
+			setTimeKeeper(5000);
+			Serial.println("Current stage:" + CurrentStateNow);
+		}	
+		break;
+	case 8:
+		sendCOMMAND(CMD_SET_STATE, LAND);
+		delay(100);
+		sendCOMMAND(CMD_SET_THROTTLE, 0);
+		if (timeKeeper()) {
+			CurrentStateNow++;
+			setTimeKeeper(2000);
+			Serial.println("Current stage:" + CurrentStateNow);
+		}
+		break;
+	case 9:
+		sendCOMMAND(CMD_SET_STATE, DISABLE);
+		delay(100);
+		sendCOMMAND(CMD_SET_THROTTLE, 0);
+		if (readThrottle() < 5) {
+			CurrentStateNow++;
+			setTimeKeeper(1000);
+			Serial.println("Current stage:" + CurrentStateNow);
+		}
+		break;
+	case 10:
+		sendCOMMAND(CMD_SET_STATE, RESET);
+		delay(100);
+		sendCOMMAND(CMD_SET_THROTTLE, 0);
+		if (timeKeeper()) {
+			CurrentStateNow++;
+			Serial.println("Current stage:" + CurrentStateNow);
+		}		
+		break;
+	case 11:
+		CurrentStateNow = 0;
+		break;
+	default:
+		break;
+	}
+}
+
 void loop()
 {
-/*
-	checkButtons();
-	if (KILL_SWITCH)
-	{
+	printLCD();
 
-		setCommandType(2);
-		setState(9);
-		sendCOMMAND();
-		delay(1500);
-		KILL_SWITCH = false;
-	}
-	if (FAIL_SAFE)
-	{
+	currentState();
 	
-		setCommandType(1);
-		setState(11);
-		sendCOMMAND();
-		delay(1500);
-		FAIL_SAFE = false;
-	}
-	*/
-
-	sendCOMMAND(CMD_SET_STATE,tmp);
-	delay(100);
-
-	sendCOMMAND(CMD_SET_THROTTLE,readThrottle());
-	delay(100);
-
+	Serial.println("Current stage:" + (String)CurrentStateNow);
 
 	Serial.println("____________________");
-
-	printLCD();
-	//ég sendi stærð sem er *strengur 
-	//og byrjar á radiopacket í minninu, og ég ætla að senda 20 sæti.
-
-	//Þetta er það sem ég ætla að senda:
-	//ég ætla að hafa 4 byte, fyrsta er ID, annað er message type, þriðja
-	//er value. Fyrstu þrjú byte-in eru XOR-uð saman og það sett í fjórða byte-ið.
-	//að XOR-a saman er ^ merkið. þegar pakkinn er móttekinn eru 3 fyrstu bætin
-	//aftur XOR-uð saman og það borið saman við fjórða byte-ið úr sendingunni.
-	//Ef scramble == 4th byte recieved -> allt er í lagi. Halda áfram.
-
-	
-	tmp++;
-	if (tmp > 11) { tmp = 0; }
-	setState(tmp);
+	delay(100);
 }
